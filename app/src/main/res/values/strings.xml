@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">DalailKhoirot</string>
+    <string name="screen_beranda">Beranda</string>
+    <string name="screen_daftarisi">Daftar Isi</string>
+    <string name="screen_splash">Splash</string>
+    <string name="screen_dashboard">Dashboard</string>
 </resources>
