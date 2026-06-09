@@ -147,8 +147,9 @@ fun PdfReaderScreen(
                         ) { index ->
                             val pageNumber = startPage + index
 
-                            // Minta render saat item muncul di layar
-                            LaunchedEffect(pageNumber) {
+                            // Minta render saat item muncul di layar,
+                            // ATAU saat displayMode berubah (cache dihapus → perlu render ulang)
+                            LaunchedEffect(pageNumber, displayMode) {
                                 viewModel.requestPage(pageNumber)
                             }
 

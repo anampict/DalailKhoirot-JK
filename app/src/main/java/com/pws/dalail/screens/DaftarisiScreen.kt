@@ -188,30 +188,25 @@ fun DaftarIsiScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DaftarIsiTopBar(onBackClick: () -> Unit) {
-    TopAppBar(
+    CenterAlignedTopAppBar(
         title = {
-            Row(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text       = "Daftar Isi",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize   = 16.sp,
-                    color      = Color(0xFF00352E),
-                    fontFamily = jakartasans
-                )
-            }
+            Text(
+                text = "Daftar Isi",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp,
+                color = Color(0xFF00352E),
+                fontFamily = jakartasans
+            )
         },
         navigationIcon = {
             IconButton(onClick = onBackClick) {
                 Icon(
-                    imageVector        = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Kembali"
                 )
             }
         },
-        colors = TopAppBarDefaults.topAppBarColors(
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
             containerColor = MaterialTheme.colorScheme.background
         )
     )

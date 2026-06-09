@@ -132,13 +132,22 @@ class PdfViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
      * Ganti mode tampilan (Light / Dark / AMOLED).
-     * Menghapus semua cache agar halaman dirender ulang dengan mode baru.
+     * Membatalkan semua render job aktif lalu menghapus cache,
+     * sehingga LaunchedEffect(pageNumber, displayMode) akan request ulang
+     * dengan mode yang baru.
      */
     fun setDisplayMode(mode: PdfDisplayMode) {
         if (_displayMode.value == mode) return
+
+        // 1. Batalkan semua job render yang sedang berjalan
+        //    agar bitmap mode lama tidak menimpa cache mode baru
+        renderJobs.values.forEach { it.cancel() }
+        renderJobs.clear()
+
+        // 2. Set mode baru
         _displayMode.value = mode
 
-        // Hapus cache UI dan cache repository
+        // 3. Kosongkan cache UI dan repository
         _pageCache.value = emptyMap()
         repository.evictAll()
     }
