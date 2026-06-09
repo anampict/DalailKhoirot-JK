@@ -6,6 +6,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.pws.dalail.screens.BookmarkScreen
 import com.pws.dalail.screens.ChapterDetailScreen
 import com.pws.dalail.screens.DaftarIsiScreen
 import com.pws.dalail.screens.DashboardScreen
@@ -48,6 +49,11 @@ fun AppNavHost(
                     )
                 }
             )
+        }
+
+        // ── Bookmark ─────────────────────────────────────────────────────────
+        composable(AppScreen.Bookmark.route) {
+            BookmarkScreen(navController = navController)
         }
 
         // ── Chapter Detail (tanpa bottom bar) ────────────────────────────────

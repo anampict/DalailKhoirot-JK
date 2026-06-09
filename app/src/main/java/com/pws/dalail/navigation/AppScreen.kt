@@ -28,6 +28,12 @@ sealed class AppScreen(
         "daftarisi"
     )
 
+    object Bookmark : AppScreen(
+        R.string.screen_daftarisi,
+        R.drawable.ic_launcher_background,
+        "bookmark"
+    )
+
     // Route chapter detail: chapterdetail/{chapterNumber}
     object ChapterDetail : AppScreen(
         R.string.screen_daftarisi,

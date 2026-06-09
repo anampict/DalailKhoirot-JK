@@ -91,7 +91,10 @@ fun DashboardScreen(navController: NavController) {
             DashboardHeader()
             KitabCard(onReadClick = { navController.navigate(AppScreen.Daftarisi.route) })
             Spacer(modifier = Modifier.height(24.dp))
-            MenuSection(onDaftarIsiClick = { navController.navigate(AppScreen.Daftarisi.route) })
+            MenuSection(
+                onDaftarIsiClick = { navController.navigate(AppScreen.Daftarisi.route) },
+                onBookmarkClick = { navController.navigate(AppScreen.Bookmark.route) }
+            )
             Spacer(modifier = Modifier.height(24.dp))
             TerakhirDibacaSection()
             Spacer(modifier = Modifier.height(16.dp))
@@ -227,7 +230,7 @@ fun KitabCard(onReadClick: () -> Unit) {
 // ─── Menu Section ─────────────────────────────────────────────────────────────
 
 @Composable
-fun MenuSection(onDaftarIsiClick: () -> Unit) {
+fun MenuSection(onDaftarIsiClick: () -> Unit, onBookmarkClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -255,7 +258,7 @@ fun MenuSection(onDaftarIsiClick: () -> Unit) {
                 iconRes  = R.drawable.menubookmark,
                 label    = "Bookmark",
                 modifier = Modifier.weight(1f),
-                onClick  = {}
+                onClick  = onBookmarkClick
             )
         }
     }
