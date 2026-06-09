@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.pws.dalail.commond.jakartasans
+import com.pws.dalail.pdf.BookmarkViewModel
+import com.pws.dalail.pdf.LastReadViewModel
 import com.pws.dalail.pdf.PdfDisplayMode
 import com.pws.dalail.pdf.PdfState
 import com.pws.dalail.pdf.PdfViewModel
@@ -59,21 +61,37 @@ private val ReaderGreenLight = Color(0xFFE8F5EE)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PdfReaderScreen(
-    startPage    : Int,
-    endPage      : Int,
-    chapterTitle : String,
-    totalPdfPages: Int = 172,
-    navController: NavController,
-    viewModel    : PdfViewModel = viewModel()
+    startPage      : Int,
+    endPage        : Int,
+    chapterTitle   : String,
+    chapterNumber  : Int,          // ← baru: untuk bookmark & last-read
+    totalPdfPages  : Int = 172,
+    navController  : NavController,
+    viewModel      : PdfViewModel      = viewModel(),
+    bookmarkVm     : BookmarkViewModel = viewModel(),
+    lastReadVm     : LastReadViewModel = viewModel()
 ) {
     val pdfState    by viewModel.pdfState.collectAsState()
     val pageCache   by viewModel.pageCache.collectAsState()
     val displayMode by viewModel.displayMode.collectAsState()
     val currentPage by viewModel.currentPage.collectAsState()
 
-    // Inisialisasi chapter
+    // ── Status bookmark dari Room (reaktif) ──────────────────────────────────
+    val isBookmarked by bookmarkVm.isBookmarkedFlow(chapterNumber).collectAsState(initial = false)
+
+    // ── Inisialisasi chapter ─────────────────────────────────────────────────
     LaunchedEffect(startPage, endPage) {
         viewModel.openChapter(startPage, endPage)
+    }
+
+    // ── Simpan "terakhir dibaca" saat pertama kali bab ini dibuka ────────────
+    LaunchedEffect(chapterNumber) {
+        lastReadVm.saveLastRead(
+            chapterNumber = chapterNumber,
+            titleArabic   = chapterTitle,
+            startPage     = startPage,
+            endPage       = endPage
+        )
     }
 
     // Scroll state
@@ -86,7 +104,6 @@ fun PdfReaderScreen(
     }
 
     // State lokal
-    var isBookmarked  by remember { mutableStateOf(false) }
     var showMenu      by remember { mutableStateOf(false) }
     var showModeSheet by remember { mutableStateOf(false) }
 
@@ -101,15 +118,24 @@ fun PdfReaderScreen(
         containerColor = bgColor,
         topBar = {
             PdfReaderTopBar(
-                title        = chapterTitle,
-                isBookmarked = isBookmarked,
-                onBack       = { navController.popBackStack() },
-                onBookmark   = { isBookmarked = !isBookmarked },
-                onMoreClick  = { showMenu = true },
-                showMenu     = showMenu,
+                title         = chapterTitle,
+                isBookmarked  = isBookmarked,
+                onBack        = { navController.popBackStack() },
+                onBookmark    = {
+                    // Toggle bookmark via Room
+                    bookmarkVm.toggleBookmark(
+                        chapterNumber          = chapterNumber,
+                        titleArabic            = chapterTitle,
+                        startPage              = startPage,
+                        endPage                = endPage,
+                        isCurrentlyBookmarked  = isBookmarked
+                    )
+                },
+                onMoreClick   = { showMenu = true },
+                showMenu      = showMenu,
                 onDismissMenu = { showMenu = false },
-                onModeClick  = { showModeSheet = true; showMenu = false },
-                displayMode  = displayMode
+                onModeClick   = { showModeSheet = true; showMenu = false },
+                displayMode   = displayMode
             )
         }
     ) { paddingValues ->
@@ -130,8 +156,6 @@ fun PdfReaderScreen(
 
                 is PdfState.Success -> {
                     // ── Daftar halaman (lazy, hanya startPage..endPage) ──────
-                    val pageRange = startPage..endPage
-
                     LazyColumn(
                         state          = listState,
                         modifier       = Modifier.fillMaxSize(),
@@ -147,8 +171,6 @@ fun PdfReaderScreen(
                         ) { index ->
                             val pageNumber = startPage + index
 
-                            // Minta render saat item muncul di layar,
-                            // ATAU saat displayMode berubah (cache dihapus → perlu render ulang)
                             LaunchedEffect(pageNumber, displayMode) {
                                 viewModel.requestPage(pageNumber)
                             }
@@ -233,7 +255,7 @@ private fun PdfReaderTopBar(
             }
         },
         actions = {
-            // Bookmark
+            // Bookmark (terhubung ke Room)
             IconButton(onClick = onBookmark) {
                 Icon(
                     imageVector = if (isBookmarked)
@@ -290,9 +312,6 @@ private fun PdfReaderTopBar(
 }
 
 // ─── PDF Page View (dengan Pinch-to-Zoom & Double-Tap Zoom) ──────────────────
-//
-// Menggunakan awaitEachGesture (bukan transformable) agar single-finger scroll
-// diteruskan ke LazyColumn, dan hanya gestur 2 jari (pinch) yang diproses di sini.
 
 @Composable
 private fun PdfPageView(
@@ -328,10 +347,8 @@ private fun PdfPageView(
                 )
             }
             // ── Pinch-to-zoom: hanya intercept gestur 2+ jari ───────────
-            // Single-finger scroll TIDAK dikonsumsi → diteruskan ke LazyColumn
             .pointerInput(Unit) {
                 awaitEachGesture {
-                    // Tunggu jari pertama turun tanpa meng-consume event
                     awaitFirstDown(requireUnconsumed = false)
 
                     var zoom        = 1f
@@ -358,7 +375,6 @@ private fun PdfPageView(
                                 }
                             }
 
-                            // Hanya proses jika 2+ jari (pinch gesture)
                             if (pastSlop && event.changes.size >= 2) {
                                 scale = (scale * zoomChange).coerceIn(1f, 5f)
                                 if (scale > 1f) {
@@ -366,7 +382,6 @@ private fun PdfPageView(
                                 } else {
                                     offset = Offset.Zero
                                 }
-                                // Consume hanya saat benar-benar pinch
                                 event.changes.forEach { it.consume() }
                             }
                         }
@@ -406,7 +421,7 @@ private fun PageSkeleton(bgColor: Color) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(0.707f)  // Rasio A4
+            .aspectRatio(0.707f)
             .background(skeletonColor)
     ) {
         CircularProgressIndicator(
@@ -482,10 +497,7 @@ private fun PdfErrorScreen(message: String) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text       = "⚠️",
-            fontSize   = 40.sp
-        )
+        Text(text = "⚠️", fontSize = 40.sp)
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text       = "Gagal memuat PDF",
@@ -537,19 +549,19 @@ private fun DisplayModeSheet(
             )
 
             ModeOption(
-                label     = "☀️  Terang (Light)",
-                selected  = currentMode == PdfDisplayMode.LIGHT,
-                onClick   = { onModeSelected(PdfDisplayMode.LIGHT) }
+                label    = "☀️  Terang (Light)",
+                selected = currentMode == PdfDisplayMode.LIGHT,
+                onClick  = { onModeSelected(PdfDisplayMode.LIGHT) }
             )
             ModeOption(
-                label     = "🌙  Gelap (Dark)",
-                selected  = currentMode == PdfDisplayMode.DARK,
-                onClick   = { onModeSelected(PdfDisplayMode.DARK) }
+                label    = "🌙  Gelap (Dark)",
+                selected = currentMode == PdfDisplayMode.DARK,
+                onClick  = { onModeSelected(PdfDisplayMode.DARK) }
             )
             ModeOption(
-                label     = "⚫  AMOLED Hitam",
-                selected  = currentMode == PdfDisplayMode.AMOLED,
-                onClick   = { onModeSelected(PdfDisplayMode.AMOLED) }
+                label    = "⚫  AMOLED Hitam",
+                selected = currentMode == PdfDisplayMode.AMOLED,
+                onClick  = { onModeSelected(PdfDisplayMode.AMOLED) }
             )
         }
     }
@@ -565,10 +577,10 @@ private fun ModeOption(
     val txtColor = if (selected) ReaderGreen else MaterialTheme.colorScheme.onSurface
 
     Surface(
-        modifier      = Modifier.fillMaxWidth(),
-        shape         = RoundedCornerShape(12.dp),
-        color         = bgColor,
-        onClick       = onClick
+        modifier = Modifier.fillMaxWidth(),
+        shape    = RoundedCornerShape(12.dp),
+        color    = bgColor,
+        onClick  = onClick
     ) {
         Row(
             modifier              = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),

@@ -5,12 +5,6 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 
 // ─── Mapping chapter number → rentang halaman PDF ─────────────────────────────
-//
-// Data class Chapter yang dipakai di DaftarisiScreen hanya memiliki field:
-//   number, titleArabic, page
-//
-// Untuk kebutuhan PDF Reader, kita tambahkan mapping endPage terpisah di sini.
-// startPage diambil dari Chapter.page (sudah ada).
 
 private data class ChapterPageRange(
     val number    : Int,
@@ -39,26 +33,19 @@ private val chapterPageRanges = listOf(
 
 // ─── ChapterDetailScreen ──────────────────────────────────────────────────────
 //
-// Screen ini sekarang menjadi "bridge" antara DaftarIsi dan PdfReaderScreen.
-// Ia mencari metadata chapter, lalu meneruskan startPage/endPage ke PdfReaderScreen.
-//
-// Tidak mengubah struktur navigasi yang sudah ada:
-//   navController.navigate(AppScreen.ChapterDetail.createRoute(chapter.number))
-//   → ChapterDetailScreen(chapterNumber = ...) → PdfReaderScreen(...)
+// Bridge antara DaftarIsi/Bookmark → PdfReaderScreen.
+// Meneruskan startPage, endPage, DAN chapterNumber ke PdfReaderScreen
+// agar bookmark & terakhir-dibaca bisa disimpan ke Room dengan benar.
 
 @Composable
 fun ChapterDetailScreen(
     chapterNumber: Int,
     navController: NavController = rememberNavController()
 ) {
-    // Cari data chapter dari daftar yang sudah ada (DaftarisiScreen.kt)
-    val chapter = chapterList.find { it.number == chapterNumber }
-
-    // Cari rentang halaman berdasarkan nomor chapter
+    val chapter   = chapterList.find { it.number == chapterNumber }
     val pageRange = chapterPageRanges.find { it.number == chapterNumber }
 
     if (chapter == null || pageRange == null) {
-        // Fallback: tampilkan error atau kembali
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { navController.popBackStack() },
             title = { androidx.compose.material3.Text("Bab tidak ditemukan") },
@@ -74,11 +61,11 @@ fun ChapterDetailScreen(
         return
     }
 
-    // Langsung tampilkan PDF Reader dengan rentang halaman chapter yang dipilih
     PdfReaderScreen(
         startPage     = pageRange.startPage,
         endPage       = pageRange.endPage,
         chapterTitle  = chapter.titleArabic,
+        chapterNumber = chapter.number,          // ← diteruskan ke Room
         totalPdfPages = 172,
         navController = navController
     )

@@ -18,20 +18,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.pws.dalail.R
 import com.pws.dalail.commond.jakartasans
+import com.pws.dalail.database.LastReadEntity
 import com.pws.dalail.navigation.AppScreen
+import com.pws.dalail.pdf.LastReadViewModel
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 
@@ -44,21 +48,26 @@ private val DashCard          = Color(0xFFFFFFFF)
 private val DashTextPrimary   = Color(0xFF1C1C1E)
 private val DashTextSecondary = Color(0xFF8E8E93)
 
-// ─── Bottom Nav Item (pakai painter resource) ─────────────────────────────────
+// ─── Bottom Nav Item ──────────────────────────────────────────────────────────
 
 data class BottomNavItem(
-    val label: String,
-    val iconRes: Int,
-    val route: String
+    val label   : String,
+    val iconRes : Int,
+    val route   : String
 )
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 @Composable
-fun DashboardScreen(navController: NavController) {
+fun DashboardScreen(
+    navController : NavController,
+    lastReadVm    : LastReadViewModel = viewModel()
+) {
+    val lastRead by lastReadVm.lastRead.collectAsState()
+
     val bottomNavItems = listOf(
-        BottomNavItem("Beranda",    R.drawable.beranda,    AppScreen.Dashboard.route),
-        BottomNavItem("Daftar Isi", R.drawable.daftarisi,  AppScreen.Daftarisi.route)
+        BottomNavItem("Beranda",    R.drawable.beranda,   AppScreen.Dashboard.route),
+        BottomNavItem("Daftar Isi", R.drawable.daftarisi, AppScreen.Daftarisi.route)
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -68,7 +77,7 @@ fun DashboardScreen(navController: NavController) {
         containerColor = DashBackground,
         bottomBar = {
             DashboardBottomBar(
-                items      = bottomNavItems,
+                items        = bottomNavItems,
                 currentRoute = currentRoute,
                 onItemClick  = { route ->
                     if (route != currentRoute) {
@@ -93,10 +102,15 @@ fun DashboardScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(24.dp))
             MenuSection(
                 onDaftarIsiClick = { navController.navigate(AppScreen.Daftarisi.route) },
-                onBookmarkClick = { navController.navigate(AppScreen.Bookmark.route) }
+                onBookmarkClick  = { navController.navigate(AppScreen.Bookmark.route) }
             )
             Spacer(modifier = Modifier.height(24.dp))
-            TerakhirDibacaSection()
+            TerakhirDibacaSection(
+                lastRead    = lastRead,
+                onItemClick = { entity ->
+                    navController.navigate(AppScreen.ChapterDetail.createRoute(entity.chapterNumber))
+                }
+            )
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
@@ -146,11 +160,10 @@ fun KitabCard(onReadClick: () -> Unit) {
             modifier            = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Cover Image + Label overlay dalam satu Box
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(220.dp) // sesuaikan dengan Figma
+                    .height(220.dp)
             ) {
                 Image(
                     painter            = painterResource(id = R.drawable.coverkitab),
@@ -158,11 +171,10 @@ fun KitabCard(onReadClick: () -> Unit) {
                     contentScale       = ContentScale.FillBounds,
                     modifier           = Modifier.fillMaxSize()
                 )
-
                 Column(
-                    modifier = Modifier
+                    modifier            = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(top = 25.dp), // ← naikkan nilai ini untuk geser ke atas
+                        .padding(top = 25.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
@@ -174,7 +186,6 @@ fun KitabCard(onReadClick: () -> Unit) {
                         fontFamily    = jakartasans,
                         letterSpacing = 1.2.sp
                     )
-
                     Box(
                         modifier = Modifier
                             .padding(top = 4.dp)
@@ -182,9 +193,7 @@ fun KitabCard(onReadClick: () -> Unit) {
                             .height(2.dp)
                             .background(DashGreen, RoundedCornerShape(1.dp))
                     )
-
                     Spacer(modifier = Modifier.height(6.dp))
-
                     Text(
                         text       = "Dalailul Khairat",
                         fontSize   = 22.sp,
@@ -194,10 +203,7 @@ fun KitabCard(onReadClick: () -> Unit) {
                     )
                 }
             }
-
             Spacer(modifier = Modifier.height(14.dp))
-
-            // Tombol Membaca
             Button(
                 onClick  = onReadClick,
                 modifier = Modifier
@@ -207,12 +213,7 @@ fun KitabCard(onReadClick: () -> Unit) {
                 shape  = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = DashGreen)
             ) {
-                Icon(
-                    imageVector        = Icons.Filled.MenuBook,
-                    contentDescription = null,
-                    tint               = Color.White,
-                    modifier           = Modifier.size(18.dp)
-                )
+                Icon(Icons.Filled.MenuBook, null, tint = Color.White, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text       = "Membaca",
@@ -222,11 +223,11 @@ fun KitabCard(onReadClick: () -> Unit) {
                     fontFamily = jakartasans
                 )
             }
-
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
+
 // ─── Menu Section ─────────────────────────────────────────────────────────────
 
 @Composable
@@ -245,7 +246,7 @@ fun MenuSection(onDaftarIsiClick: () -> Unit, onBookmarkClick: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(12.dp))
         Row(
-            modifier            = Modifier.fillMaxWidth(),
+            modifier              = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             MenuCard(
@@ -265,12 +266,7 @@ fun MenuSection(onDaftarIsiClick: () -> Unit, onBookmarkClick: () -> Unit) {
 }
 
 @Composable
-fun MenuCard(
-    iconRes: Int,
-    label: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
+fun MenuCard(iconRes: Int, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Card(
         modifier  = modifier.clickable(onClick = onClick),
         shape     = RoundedCornerShape(12.dp),
@@ -278,11 +274,11 @@ fun MenuCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
-            modifier              = Modifier
+            modifier            = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 20.dp, horizontal = 12.dp),
-            horizontalAlignment   = Alignment.CenterHorizontally,
-            verticalArrangement   = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Icon(
                 painter            = painterResource(id = iconRes),
@@ -302,10 +298,13 @@ fun MenuCard(
     }
 }
 
-// ─── Terakhir Dibaca ─────────────────────────────────────────────────────────
+// ─── Terakhir Dibaca (terhubung ke Room) ──────────────────────────────────────
 
 @Composable
-fun TerakhirDibacaSection() {
+fun TerakhirDibacaSection(
+    lastRead    : LastReadEntity?,
+    onItemClick : (LastReadEntity) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -319,55 +318,109 @@ fun TerakhirDibacaSection() {
             fontFamily = jakartasans
         )
         Spacer(modifier = Modifier.height(12.dp))
-        Card(
-            modifier  = Modifier.fillMaxWidth(),
-            shape     = RoundedCornerShape(12.dp),
-            colors    = CardDefaults.cardColors(containerColor = DashCard),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-        ) {
-            Row(
-                modifier              = Modifier
-                    .fillMaxWidth()
-                    .clickable {}
-                    .padding(14.dp),
-                verticalAlignment     = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+
+        if (lastRead == null) {
+            // Belum pernah membaca
+            Card(
+                modifier  = Modifier.fillMaxWidth(),
+                shape     = RoundedCornerShape(12.dp),
+                colors    = CardDefaults.cardColors(containerColor = DashCard),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
-                Box(
-                    modifier         = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(DashGreenLight),
-                    contentAlignment = Alignment.Center
+                Row(
+                    modifier  = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    Box(
+                        modifier         = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(DashGreenLight),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter            = painterResource(id = R.drawable.daftarisi),
+                            contentDescription = null,
+                            tint               = DashGreenMuted,
+                            modifier           = Modifier.size(22.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text       = "Belum ada riwayat",
+                            fontSize   = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = DashTextPrimary,
+                            fontFamily = jakartasans
+                        )
+                        Text(
+                            text       = "Mulai membaca bab pertama",
+                            fontSize   = 12.sp,
+                            color      = DashTextSecondary,
+                            fontFamily = jakartasans
+                        )
+                    }
+                }
+            }
+        } else {
+            // Tampilkan data terakhir dibaca dari Room
+            Card(
+                modifier  = Modifier.fillMaxWidth(),
+                shape     = RoundedCornerShape(12.dp),
+                colors    = CardDefaults.cardColors(containerColor = DashCard),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Row(
+                    modifier              = Modifier
+                        .fillMaxWidth()
+                        .clickable { onItemClick(lastRead) }
+                        .padding(14.dp),
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier         = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(DashGreenLight),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter            = painterResource(id = R.drawable.daftarisi),
+                            contentDescription = null,
+                            tint               = DashGreenMuted,
+                            modifier           = Modifier.size(22.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text      = lastRead.titleArabic,
+                            fontSize  = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color     = DashTextPrimary,
+                            fontFamily = jakartasans,
+                            textAlign = TextAlign.End,
+                            style     = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl),
+                            modifier  = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text       = "Halaman ${lastRead.startPage} – ${lastRead.endPage}",
+                            fontSize   = 12.sp,
+                            color      = DashTextSecondary,
+                            fontFamily = jakartasans
+                        )
+                    }
                     Icon(
-                        painter            = painterResource(id = R.drawable.daftarisi),
+                        imageVector        = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = null,
-                        tint               = DashGreenMuted,
-                        modifier           = Modifier.size(22.dp)
+                        tint               = DashTextSecondary,
+                        modifier           = Modifier.size(20.dp)
                     )
                 }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text       = "Hizib Jumat",
-                        fontSize   = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color      = DashTextPrimary,
-                        fontFamily = jakartasans
-                    )
-                    Text(
-                        text       = "Halaman 120 - 140",
-                        fontSize   = 12.sp,
-                        color      = DashTextSecondary,
-                        fontFamily = jakartasans
-                    )
-                }
-                Icon(
-                    imageVector        = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint               = DashTextSecondary,
-                    modifier           = Modifier.size(20.dp)
-                )
             }
         }
     }
@@ -377,9 +430,9 @@ fun TerakhirDibacaSection() {
 
 @Composable
 fun DashboardBottomBar(
-    items: List<BottomNavItem>,
-    currentRoute: String?,
-    onItemClick: (String) -> Unit
+    items        : List<BottomNavItem>,
+    currentRoute : String?,
+    onItemClick  : (String) -> Unit
 ) {
     NavigationBar(
         containerColor = DashCard,

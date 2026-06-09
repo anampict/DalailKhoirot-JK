@@ -14,8 +14,8 @@ import com.pws.dalail.screens.SplashScreen
 
 @Composable
 fun AppNavHost(
-    navController: NavHostController,
-    startDestination: AppScreen = AppScreen.Splash
+    navController    : NavHostController,
+    startDestination : AppScreen = AppScreen.Splash
 ) {
     NavHost(
         navController    = navController,
@@ -41,9 +41,8 @@ fun AppNavHost(
         // ── Daftar Isi ───────────────────────────────────────────────────────
         composable(AppScreen.Daftarisi.route) {
             DaftarIsiScreen(
-                navController    = navController,
-                onChapterClick   = { chapter ->
-                    // Klik bab → masuk ke detail, bottom bar hilang
+                navController  = navController,
+                onChapterClick = { chapter ->
                     navController.navigate(
                         AppScreen.ChapterDetail.createRoute(chapter.number)
                     )
@@ -56,7 +55,7 @@ fun AppNavHost(
             BookmarkScreen(navController = navController)
         }
 
-        // ── Chapter Detail (tanpa bottom bar) ────────────────────────────────
+        // ── Chapter Detail → PdfReaderScreen ─────────────────────────────────
         composable(
             route     = AppScreen.ChapterDetail.route,
             arguments = listOf(

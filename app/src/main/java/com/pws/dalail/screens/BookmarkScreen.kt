@@ -1,41 +1,21 @@
 package com.pws.dalail.screens
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkRemove
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,33 +26,31 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.pws.dalail.commond.jakartasans
+import com.pws.dalail.database.BookmarkEntity
+import com.pws.dalail.navigation.AppScreen
+import com.pws.dalail.pdf.BookmarkViewModel
+
+private val BmGreen      = Color(0xFF1A6B45)
+private val BmGreenDark  = Color(0xFF0A4D44)
+private val BmGreenLight = Color(0xFFE8F5EE)
+private val BmGreenMuted = Color(0xFF82BDB1)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookmarkScreen(
     navController: NavController,
-    onBackClick: () -> Unit = {},
-    onChapterClick: (Chapter) -> Unit = {}
+    bookmarkVm   : BookmarkViewModel = viewModel()
 ) {
+    val bookmarks by bookmarkVm.allBookmarks.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
 
-    // dummy data, ganti dengan data bookmark yang sesungguhnya
-    val bookmarks = remember {
-        listOf(
-            Chapter(1, "كَيْفِيَّةُ قِرَاءَةِ دَلَائِلِ الْخَيْرَاتِ", 6),
-            Chapter(2, "الأسماء الحسنى", 8),
-            Chapter(3, "يُقْرَأُ قَبْلَ الشُّرُوعِ", 13),
-        )
-    }
-
-    val filtered = remember(searchQuery) {
+    val filtered = remember(searchQuery, bookmarks) {
         if (searchQuery.isBlank()) bookmarks
-        else bookmarks.filter {
-            it.titleArabic.contains(searchQuery, ignoreCase = true)
-        }
+        else bookmarks.filter { it.titleArabic.contains(searchQuery, ignoreCase = true) }
     }
 
     Scaffold(
@@ -82,9 +60,9 @@ fun BookmarkScreen(
                     Text(
                         text       = "Bookmark",
                         fontSize   = 16.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.SemiBold,
                         fontFamily = jakartasans,
-                        color      = Color(0xff00352E)
+                        color      = BmGreenDark
                     )
                 },
                 navigationIcon = {
@@ -92,16 +70,14 @@ fun BookmarkScreen(
                         Icon(
                             imageVector        = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Kembali",
-                            tint               = Color(0xff00352E)
+                            tint               = BmGreenDark
                         )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White
-                )
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
             )
         },
-        containerColor = Color.White
+        containerColor = Color(0xFFF8F9FA)
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -109,58 +85,82 @@ fun BookmarkScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Search Bar
             OutlinedTextField(
                 value         = searchQuery,
                 onValueChange = { searchQuery = it },
-                modifier      = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                placeholder   = {
-                    Text(
-                        text       = "Cari...",
-                        fontSize   = 14.sp,
-                        fontFamily = jakartasans,
-                        color      = Color(0xff00352E)
-                    )
+                modifier      = Modifier.fillMaxWidth().height(52.dp),
+                placeholder = {
+                    Text("Cari bookmark...", fontSize = 14.sp, fontFamily = jakartasans, color = Color(0xFF9E9E9E))
                 },
-                leadingIcon   = {
-                    Icon(
-                        imageVector        = Icons.Default.Search,
-                        contentDescription = "Cari",
-                        tint               = Color(0xff00352E),
-                        modifier           = Modifier.size(20.dp)
-                    )
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = null, tint = BmGreen, modifier = Modifier.size(20.dp))
                 },
-                singleLine    = true,
-                shape         = RoundedCornerShape(12.dp),
-                colors        = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor   = Color(0xff00352E),
-                    unfocusedBorderColor = Color(0xFFE8E8E8),
-                    focusedContainerColor   = Color(0xFFF7F7F7),
-                    unfocusedContainerColor = Color(0xFFF7F7F7)
+                singleLine = true,
+                shape      = RoundedCornerShape(14.dp),
+                colors     = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor      = BmGreen,
+                    unfocusedBorderColor    = Color(0xFFE8E8E8),
+                    focusedContainerColor   = Color.White,
+                    unfocusedContainerColor = Color.White
                 )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Bookmark List
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(0.dp)
-            ) {
-                items(filtered, key = { it.number }) { chapter ->
-                    BookmarkItem(
-                        chapter  = chapter,
-                        isFirst  = filtered.indexOf(chapter) == 0,
-                        onClick  = { onChapterClick(chapter) }
-                    )
-                    if (filtered.indexOf(chapter) < filtered.size - 1) {
-                        HorizontalDivider(
-                            color     = Color(0xFFF0F0F0),
-                            thickness = 1.dp
+            if (bookmarks.isNotEmpty()) {
+                Text(
+                    text       = "${filtered.size} bab tersimpan",
+                    fontSize   = 12.sp,
+                    color      = Color(0xFF9E9E9E),
+                    fontFamily = jakartasans,
+                    modifier   = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            when {
+                bookmarks.isEmpty() -> BookmarkEmptyState()
+                filtered.isEmpty()  -> {
+                    Box(
+                        modifier         = Modifier.fillMaxWidth().padding(top = 40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text       = "Tidak ada hasil untuk \"$searchQuery\"",
+                            fontSize   = 14.sp,
+                            color      = Color(0xFF9E9E9E),
+                            fontFamily = jakartasans,
+                            textAlign  = TextAlign.Center
                         )
+                    }
+                }
+                else -> {
+                    Card(
+                        modifier  = Modifier.fillMaxWidth(),
+                        shape     = RoundedCornerShape(16.dp),
+                        colors    = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        LazyColumn {
+                            itemsIndexed(items = filtered, key = { _, b -> b.chapterNumber }) { index, bookmark ->
+                                BookmarkItemRow(
+                                    bookmark = bookmark,
+                                    isFirst  = index == 0,
+                                    onClick  = {
+                                        navController.navigate(AppScreen.ChapterDetail.createRoute(bookmark.chapterNumber))
+                                    },
+                                    onDelete = { bookmarkVm.removeBookmark(bookmark.chapterNumber) }
+                                )
+                                if (index < filtered.lastIndex) {
+                                    HorizontalDivider(
+                                        modifier  = Modifier.padding(horizontal = 16.dp),
+                                        color     = Color(0xFFF0F0F0),
+                                        thickness = 0.8.dp
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -169,61 +169,102 @@ fun BookmarkScreen(
 }
 
 @Composable
-fun BookmarkItem(
-    chapter : Chapter,
-    isFirst : Boolean = false,
-    onClick : () -> Unit
+private fun BookmarkItemRow(
+    bookmark : BookmarkEntity,
+    isFirst  : Boolean,
+    onClick  : () -> Unit,
+    onDelete : () -> Unit
 ) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    val iconBg   by animateColorAsState(if (isFirst) BmGreenDark else BmGreenLight, tween(300), "bg")
+    val iconTint by animateColorAsState(if (isFirst) BmGreenMuted else BmGreen, tween(300), "tint")
+
     Row(
-        modifier            = Modifier
+        modifier              = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 14.dp),
-        verticalAlignment   = Alignment.CenterVertically,
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Bookmark Icon
         Box(
-            modifier        = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(if (isFirst) Color(0xff0A4D44) else Color(0xFFF0F0F0)),
+            modifier         = Modifier.size(38.dp).clip(RoundedCornerShape(10.dp)).background(iconBg),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector        = Icons.Default.Bookmark,
-                contentDescription = null,
-                tint               = if (isFirst) Color(0xff82BDB1) else Color(0xff00352E),
-                modifier           = Modifier.size(18.dp)
+            Icon(Icons.Default.Bookmark, null, tint = iconTint, modifier = Modifier.size(18.dp))
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text      = bookmark.titleArabic,
+                fontSize  = 15.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.End,
+                color     = Color(0xFF1C1C1E),
+                style     = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl),
+                modifier  = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text       = "Hal. ${bookmark.startPage} – ${bookmark.endPage}",
+                fontSize   = 11.sp,
+                color      = Color(0xFF9E9E9E),
+                fontFamily = jakartasans
             )
         }
+        IconButton(onClick = { showDialog = true }, modifier = Modifier.size(32.dp)) {
+            Icon(Icons.Default.BookmarkRemove, "Hapus", tint = Color(0xFFE53935), modifier = Modifier.size(18.dp))
+        }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color(0xFFBBBBBB), modifier = Modifier.size(18.dp))
+    }
 
-        // Arabic Title
-        Text(
-            text      = chapter.titleArabic,
-            modifier  = Modifier.weight(1f),
-            fontSize  = 15.sp,
-            textAlign = TextAlign.End,
-            color     = Color(0xff191C1D),
-            style     = LocalTextStyle.current.copy(
-                textDirection = TextDirection.Rtl
-            )
-        )
-
-        // Chevron
-        Icon(
-            imageVector        = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint               = Color(0xff191C1D),
-            modifier           = Modifier.size(20.dp)
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("Hapus Bookmark", fontFamily = jakartasans, fontWeight = FontWeight.SemiBold) },
+            text  = { Text("Yakin ingin menghapus bookmark bab ini?", fontFamily = jakartasans, fontSize = 14.sp) },
+            confirmButton = {
+                TextButton(onClick = { showDialog = false; onDelete() }) {
+                    Text("Hapus", color = Color(0xFFE53935), fontFamily = jakartasans, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text("Batal", fontFamily = jakartasans)
+                }
+            }
         )
     }
 }
 
+@Composable
+private fun BookmarkEmptyState() {
+    Column(
+        modifier            = Modifier.fillMaxWidth().padding(top = 64.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier         = Modifier.size(80.dp).clip(RoundedCornerShape(20.dp)).background(BmGreenLight),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Default.Bookmark, null, tint = BmGreen, modifier = Modifier.size(40.dp))
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+        Text("Belum ada bookmark", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1C1C1E), fontFamily = jakartasans)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text       = "Tekan ikon bookmark saat membaca\nbab untuk menyimpannya di sini.",
+            fontSize   = 13.sp,
+            color      = Color(0xFF9E9E9E),
+            fontFamily = jakartasans,
+            textAlign  = TextAlign.Center,
+            lineHeight = 20.sp
+        )
+    }
+}
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun BookmarkScreenPreview() {
-    BookmarkScreen(navController = rememberNavController())
-
+    MaterialTheme { BookmarkScreen(navController = rememberNavController()) }
 }
