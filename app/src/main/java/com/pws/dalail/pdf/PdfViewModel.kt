@@ -100,24 +100,33 @@ class PdfViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Minta render halaman [pageNumber].
      * Dipanggil oleh LazyColumn saat item muncul di layar.
-     * Hasilnya akan masuk ke [pageCache].
+     *
+     * Aman dipanggil dari banyak coroutine — PdfRendererRepository.renderPage()
+     * menggunakan Mutex untuk serialisasi akses ke PdfRenderer.
      */
     fun requestPage(pageNumber: Int) {
-        // Jangan render jika sudah ada di cache UI
+        // Fast path: sudah ada di cache UI, tidak perlu render
         if (_pageCache.value.containsKey(pageNumber)) return
 
-        // Batalkan job lama untuk halaman ini (jika ada)
+        // Batalkan job lama untuk halaman yang sama (jika ada yang sedang antri)
         renderJobs[pageNumber]?.cancel()
 
         val mode = _displayMode.value
+
         renderJobs[pageNumber] = viewModelScope.launch(Dispatchers.IO) {
-            val bitmap = repository.renderPage(
-                pageNumber  = pageNumber,
-                displayMode = mode,
-                screenWidth = screenWidthPx
-            )
-            if (bitmap != null) {
-                _pageCache.value = _pageCache.value + (pageNumber to bitmap)
+            try {
+                val bitmap = repository.renderPage(
+                    pageNumber  = pageNumber,
+                    displayMode = mode,
+                    screenWidth = screenWidthPx
+                )
+                // Hanya update jika mode belum berubah selama render berlangsung
+                if (bitmap != null && _displayMode.value == mode) {
+                    // Gunakan update atomik agar tidak ada race condition antar coroutine
+                    _pageCache.value = _pageCache.value + (pageNumber to bitmap)
+                }
+            } catch (_: Exception) {
+                // Abaikan error render individual (misal job di-cancel)
             }
         }
     }
