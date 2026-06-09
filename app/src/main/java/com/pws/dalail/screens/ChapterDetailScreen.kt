@@ -1,212 +1,85 @@
 package com.pws.dalail.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDirection
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 
-import com.pws.dalail.commond.jakartasans
+// ─── Mapping chapter number → rentang halaman PDF ─────────────────────────────
+//
+// Data class Chapter yang dipakai di DaftarisiScreen hanya memiliki field:
+//   number, titleArabic, page
+//
+// Untuk kebutuhan PDF Reader, kita tambahkan mapping endPage terpisah di sini.
+// startPage diambil dari Chapter.page (sudah ada).
 
-// ─── Colors ───────────────────────────────────────────────────────────────────
+private data class ChapterPageRange(
+    val number    : Int,
+    val startPage : Int,
+    val endPage   : Int
+)
 
-private val ChapterGreen     = Color(0xFF1A6B45)
-private val ChapterGreenLight = Color(0xFFE8F5EE)
+private val chapterPageRanges = listOf(
+    ChapterPageRange(1,   6,   7),
+    ChapterPageRange(2,   8,  12),
+    ChapterPageRange(3,  13,  14),
+    ChapterPageRange(4,  15,  16),
+    ChapterPageRange(5,  17,  19),
+    ChapterPageRange(6,  20,  31),
+    ChapterPageRange(7,  32,  47),
+    ChapterPageRange(8,  48,  63),
+    ChapterPageRange(9,  64,  80),
+    ChapterPageRange(10, 81,  97),
+    ChapterPageRange(11, 98, 117),
+    ChapterPageRange(12,118, 136),
+    ChapterPageRange(13,137, 156),
+    ChapterPageRange(14,157, 165),
+    ChapterPageRange(15,166, 170),
+    ChapterPageRange(16,171, 172)
+)
 
-// ─── Main Screen — tanpa Bottom Bar ──────────────────────────────────────────
+// ─── ChapterDetailScreen ──────────────────────────────────────────────────────
+//
+// Screen ini sekarang menjadi "bridge" antara DaftarIsi dan PdfReaderScreen.
+// Ia mencari metadata chapter, lalu meneruskan startPage/endPage ke PdfReaderScreen.
+//
+// Tidak mengubah struktur navigasi yang sudah ada:
+//   navController.navigate(AppScreen.ChapterDetail.createRoute(chapter.number))
+//   → ChapterDetailScreen(chapterNumber = ...) → PdfReaderScreen(...)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChapterDetailScreen(
     chapterNumber: Int,
     navController: NavController = rememberNavController()
 ) {
-    // Ambil data chapter berdasarkan nomor
+    // Cari data chapter dari daftar yang sudah ada (DaftarisiScreen.kt)
     val chapter = chapterList.find { it.number == chapterNumber }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "Bab ${chapter?.number ?: ""}",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 16.sp,
-                            color = Color(0xFF00352E),
-                            fontFamily = jakartasans
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector        = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Kembali"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        // ⬇ Tidak ada bottomBar di halaman detail bab
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
-        if (chapter == null) {
-            // Fallback jika chapter tidak ditemukan
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Bab tidak ditemukan",
-                    color = Color.Gray,
-                    fontFamily = jakartasans
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(
-                    horizontal = 20.dp,
-                    vertical   = 16.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // ── Header bab ───────────────────────────────────────────────
-                item {
-                    ChapterDetailHeader(chapter = chapter)
-                }
+    // Cari rentang halaman berdasarkan nomor chapter
+    val pageRange = chapterPageRanges.find { it.number == chapterNumber }
 
-                // ── Placeholder konten bab ───────────────────────────────────
-                item {
-                    ChapterContentPlaceholder(chapter = chapter)
+    if (chapter == null || pageRange == null) {
+        // Fallback: tampilkan error atau kembali
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { navController.popBackStack() },
+            title = { androidx.compose.material3.Text("Bab tidak ditemukan") },
+            text  = { androidx.compose.material3.Text("Chapter #$chapterNumber tidak ada dalam daftar.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { navController.popBackStack() }
+                ) {
+                    androidx.compose.material3.Text("Kembali")
                 }
             }
-        }
+        )
+        return
     }
-}
 
-// ─── Header ──────────────────────────────────────────────────────────────────
-
-@Composable
-fun ChapterDetailHeader(chapter: Chapter) {
-    Card(
-        modifier  = Modifier.fillMaxWidth(),
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = ChapterGreenLight),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier            = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            // Badge nomor bab
-            Box(
-                modifier = Modifier
-                    .background(ChapterGreen, RoundedCornerShape(50))
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    text       = "Bab ${chapter.number}",
-                    fontSize   = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color      = Color.White,
-                    fontFamily = jakartasans
-                )
-            }
-
-            // Judul Arab
-            Text(
-                text       = chapter.titleArabic,
-                fontSize   = 22.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign  = TextAlign.Center,
-                lineHeight = 36.sp,
-                color      = ChapterGreen,
-                style      = LocalTextStyle.current.copy(
-                    textDirection = TextDirection.Rtl
-                )
-            )
-
-            // Info halaman
-            Text(
-                text       = "Mulai halaman ${chapter.page}",
-                fontSize   = 13.sp,
-                color      = ChapterGreen.copy(alpha = 0.7f),
-                fontFamily = jakartasans
-            )
-        }
-    }
-}
-
-// ─── Placeholder Konten ───────────────────────────────────────────────────────
-
-@Composable
-fun ChapterContentPlaceholder(chapter: Chapter) {
-    Card(
-        modifier  = Modifier.fillMaxWidth(),
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text       = "Konten Bab",
-                fontSize   = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color      = ChapterGreen,
-                fontFamily = jakartasans
-            )
-            HorizontalDivider(color = ChapterGreenLight, thickness = 1.dp)
-            Text(
-                text       = "Konten halaman ${chapter.page} akan ditampilkan di sini.",
-                fontSize   = 14.sp,
-                color      = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                fontFamily = jakartasans,
-                lineHeight = 22.sp
-            )
-        }
-    }
-}
-
-// ─── Preview ─────────────────────────────────────────────────────────────────
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun ChapterDetailScreenPreview() {
-    MaterialTheme {
-        ChapterDetailScreen(chapterNumber = 7)
-    }
+    // Langsung tampilkan PDF Reader dengan rentang halaman chapter yang dipilih
+    PdfReaderScreen(
+        startPage     = pageRange.startPage,
+        endPage       = pageRange.endPage,
+        chapterTitle  = chapter.titleArabic,
+        totalPdfPages = 172,
+        navController = navController
+    )
 }

@@ -37,6 +37,17 @@ android {
     buildFeatures {
         compose = true
     }
+
+    sourceSets {
+        getByName("main") {
+            assets {
+                srcDirs(
+                    "src/main/assets",
+                    "src/main/java/com/pws/dalail/assets"
+                )
+            }
+        }
+    }
 }
 
 dependencies {
@@ -53,6 +64,10 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.material3)
     implementation(libs.androidx.navigation.runtime.ktx)
+
+    // ── ViewModel untuk Jetpack Compose ──────────────────────────────────────
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
