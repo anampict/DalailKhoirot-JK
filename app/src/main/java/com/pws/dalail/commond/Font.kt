@@ -11,3 +11,8 @@ val jakartasans = FontFamily(
     Font(R.font.plusjakartasans_semibold, FontWeight.SemiBold),
     Font(R.font.plusjakartasans_medium, FontWeight.Medium),
 )
+
+val uthmantaha = FontFamily(
+    Font(R.font.uthmantaha, FontWeight.Normal),
+
+)

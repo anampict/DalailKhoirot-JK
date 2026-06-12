@@ -30,6 +30,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.pws.dalail.commond.jakartasans
+import com.pws.dalail.commond.uthmantaha
 import com.pws.dalail.database.BookmarkEntity
 import com.pws.dalail.navigation.AppScreen
 import com.pws.dalail.pdf.BookmarkViewModel
@@ -199,6 +200,7 @@ private fun BookmarkItemRow(
                 text      = bookmark.titleArabic,
                 fontSize  = 15.sp,
                 fontWeight = FontWeight.Medium,
+                fontFamily = uthmantaha,
                 textAlign = TextAlign.End,
                 color     = Color(0xFF1C1C1E),
                 style     = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl),

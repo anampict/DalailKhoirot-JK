@@ -29,6 +29,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.pws.dalail.R
 import com.pws.dalail.commond.jakartasans
+import com.pws.dalail.commond.uthmantaha
 import com.pws.dalail.navigation.AppScreen
 
 // ─── Data Model ───────────────────────────────────────────────────────────────
@@ -296,6 +297,7 @@ fun ChapterItem(
                 text       = chapter.titleArabic,
                 modifier   = Modifier.weight(1f),
                 fontSize   = 15.sp,
+                fontFamily = uthmantaha,
                 textAlign  = TextAlign.End,
                 lineHeight = 22.sp,
                 color      = MaterialTheme.colorScheme.onBackground,

@@ -34,6 +34,13 @@ sealed class AppScreen(
         "bookmark"
     )
 
+    /** Buka seluruh PDF (halaman 1–172) tanpa filter bab. */
+    object FullPdf : AppScreen(
+        R.string.screen_daftarisi,
+        R.drawable.ic_launcher_background,
+        "fullpdf"
+    )
+
     // Route chapter detail: chapterdetail/{chapterNumber}
     object ChapterDetail : AppScreen(
         R.string.screen_daftarisi,

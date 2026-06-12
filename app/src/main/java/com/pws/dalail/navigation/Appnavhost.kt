@@ -55,6 +55,20 @@ fun AppNavHost(
             BookmarkScreen(navController = navController)
         }
 
+        // ── Full PDF (tombol "Membaca" dari Dashboard) ────────────────────────
+        // Membuka seluruh kitab dari halaman 1 hingga 172.
+        // chapterNumber = 0 → penanda "mode baca penuh" untuk last-read.
+        composable(AppScreen.FullPdf.route) {
+            com.pws.dalail.screens.PdfReaderScreen(
+                startPage     = 1,
+                endPage       = 172,
+                chapterTitle  = "Dalailul Khairat",
+                chapterNumber = 0,
+                totalPdfPages = 172,
+                navController = navController
+            )
+        }
+
         // ── Chapter Detail → PdfReaderScreen ─────────────────────────────────
         composable(
             route     = AppScreen.ChapterDetail.route,

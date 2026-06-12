@@ -33,6 +33,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.pws.dalail.R
 import com.pws.dalail.commond.jakartasans
+import com.pws.dalail.commond.uthmantaha
 import com.pws.dalail.database.LastReadEntity
 import com.pws.dalail.navigation.AppScreen
 import com.pws.dalail.pdf.LastReadViewModel
@@ -98,7 +99,7 @@ fun DashboardScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             DashboardHeader()
-            KitabCard(onReadClick = { navController.navigate(AppScreen.Daftarisi.route) })
+            KitabCard(onReadClick = { navController.navigate(AppScreen.FullPdf.route) })
             Spacer(modifier = Modifier.height(24.dp))
             MenuSection(
                 onDaftarIsiClick = { navController.navigate(AppScreen.Daftarisi.route) },
@@ -108,7 +109,12 @@ fun DashboardScreen(
             TerakhirDibacaSection(
                 lastRead    = lastRead,
                 onItemClick = { entity ->
-                    navController.navigate(AppScreen.ChapterDetail.createRoute(entity.chapterNumber))
+                    // chapterNumber = 0 berarti mode baca penuh (tombol Membaca)
+                    if (entity.chapterNumber == 0) {
+                        navController.navigate(AppScreen.FullPdf.route)
+                    } else {
+                        navController.navigate(AppScreen.ChapterDetail.createRoute(entity.chapterNumber))
+                    }
                 }
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -401,7 +407,7 @@ fun TerakhirDibacaSection(
                             fontSize  = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color     = DashTextPrimary,
-                            fontFamily = jakartasans,
+                            fontFamily = uthmantaha,
                             textAlign = TextAlign.End,
                             style     = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl),
                             modifier  = Modifier.fillMaxWidth()
